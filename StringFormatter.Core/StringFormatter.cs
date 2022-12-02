@@ -7,9 +7,9 @@ public class StringFormatter
 {
     public static readonly StringFormatter Shared = new StringFormatter();
 
-    private ConcurrentDictionary<string, Expression<Func<object, string>>> _cache;
+    private ConcurrentDictionary<string, Func<object, string>> _cache;
     
-    private ConcurrentDictionary<string, Expression<Func<object,int, string>>> _cacheForCollection;
+    private ConcurrentDictionary<string, Func<object,int, string>> _cacheForCollection;
     
     private StringFormatter()
     {
@@ -33,10 +33,9 @@ public class StringFormatter
                     throw new Exception($"Invalid string at {i}");
                 }
 
-                if (input[i] == '{')
-            {
+                if (input[i] == '{') {
                 sum++;
-            }
+              }
             
                 if (input[i] == '}')
             {
@@ -87,7 +86,7 @@ public class StringFormatter
         {
             var func = _cacheForCollection[cacheName];
             
-            return func.Compile()(target,ind);
+            return func(target,ind);
             
         }
         else
@@ -110,12 +109,13 @@ public class StringFormatter
                 Expression<Func<object,int, string>> exp =
                     Expression.Lambda<Func<object,int, string>>(b, new ParameterExpression[] { generalObjParam,indexExpr });
                 
+                Func<object,int, string> e = exp.Compile();
                 
-                _cacheForCollection.TryAdd(cacheName, exp);
+                _cacheForCollection.TryAdd(cacheName, e);
 
                 var func = _cacheForCollection[cacheName];
                 
-                return func.Compile()(target,ind);
+                return func(target,ind);
             }
             catch (Exception exception)
             {
@@ -127,6 +127,7 @@ public class StringFormatter
      
     private string GetObjectString(string input, object target)
     {
+        
 
         string cacheName = target.GetType().ToString()+"."+input;
 
@@ -134,11 +135,13 @@ public class StringFormatter
         {
             var func = _cache[cacheName];
             
-            return func.Compile()(target);
+            return func(target);
             
         }
         else
         {
+            
+            
             
                 try
                 {
@@ -151,11 +154,17 @@ public class StringFormatter
                     Expression<Func<object, string>> exp =
                         Expression.Lambda<Func<object, string>>(b, new ParameterExpression[] { generalObjParam });
 
-                    _cache.TryAdd(cacheName, exp);
+                    Func<object, string> e = exp.Compile();
+                    
+                    
+                    
+                    
+                    
+                    _cache.TryAdd(cacheName, e);
 
                     var func = _cache[cacheName];
                 
-                    return func.Compile()(target);
+                    return func(target);
                     
                 }
                 catch (Exception exception)
@@ -165,6 +174,8 @@ public class StringFormatter
                 }
             
         }
+        
+       
     }
 
     private string ParseString(string input,object target)
@@ -239,4 +250,7 @@ public class StringFormatter
         return ParseString(template,target);
         
     }
+    
+   
+    
 }
